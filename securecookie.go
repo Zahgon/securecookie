@@ -5,22 +5,8 @@
 package securecookie
 
 import (
-	"bytes"
-	"crypto/aes"
 	"crypto/cipher"
-	"crypto/hmac"
-	"crypto/rand"
-	"crypto/sha256"
-	"crypto/subtle"
-	"encoding/base64"
-	"encoding/gob"
-	"encoding/json"
-	"fmt"
 	"hash"
-	"io"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // Error is the interface of all errors returned by functions in this library.
@@ -69,24 +55,13 @@ type cookieError struct {
 	cause error
 }
 
-func (e cookieError) IsUsage() bool    { return (e.typ & usageError) != 0 }
-func (e cookieError) IsDecode() bool   { return (e.typ & decodeError) != 0 }
-func (e cookieError) IsInternal() bool { return (e.typ & internalError) != 0 }
+func (e cookieError) IsUsage() bool    { _ = "STUB: not implemented"; return false }
+func (e cookieError) IsDecode() bool   { _ = "STUB: not implemented"; return false }
+func (e cookieError) IsInternal() bool { _ = "STUB: not implemented"; return false }
 
-func (e cookieError) Cause() error { return e.cause }
+func (e cookieError) Cause() error { _ = "STUB: not implemented"; return nil }
 
-func (e cookieError) Error() string {
-	parts := []string{"securecookie: "}
-	if e.msg == "" {
-		parts = append(parts, "error")
-	} else {
-		parts = append(parts, e.msg)
-	}
-	if c := e.Cause(); c != nil {
-		parts = append(parts, " - caused by: ", c.Error())
-	}
-	return strings.Join(parts, "")
-}
+func (e cookieError) Error() string { _ = "STUB: not implemented"; return "" }
 
 var (
 	errGeneratingIV = cookieError{typ: internalError, msg: "failed to generate random iv"}
@@ -132,23 +107,7 @@ type Codec interface {
 // Note that keys created using GenerateRandomKey() are not automatically
 // persisted. New keys will be created when the application is restarted, and
 // previously issued cookies will not be able to be decoded.
-func New(hashKey, blockKey []byte) *SecureCookie {
-	s := &SecureCookie{
-		hashKey:   hashKey,
-		blockKey:  blockKey,
-		hashFunc:  sha256.New,
-		maxAge:    86400 * 30,
-		maxLength: 4096,
-		sz:        GobEncoder{},
-	}
-	if len(hashKey) == 0 {
-		s.err = errHashKeyNotSet
-	}
-	if blockKey != nil {
-		s.BlockFunc(aes.NewCipher)
-	}
-	return s
-}
+func New(hashKey, blockKey []byte) *SecureCookie { _ = "STUB: not implemented"; return nil }
 
 // SecureCookie encodes and decodes authenticated and optionally encrypted
 // cookie values.
@@ -191,47 +150,33 @@ type NopEncoder struct{}
 // MaxLength restricts the maximum length, in bytes, for the cookie value.
 //
 // Default is 4096, which is the maximum value accepted by Internet Explorer.
-func (s *SecureCookie) MaxLength(value int) *SecureCookie {
-	s.maxLength = value
-	return s
-}
+func (s *SecureCookie) MaxLength(value int) *SecureCookie { _ = "STUB: not implemented"; return nil }
 
 // MaxAge restricts the maximum age, in seconds, for the cookie value.
 //
 // Default is 86400 * 30. Set it to 0 for no restriction.
-func (s *SecureCookie) MaxAge(value int) *SecureCookie {
-	s.maxAge = int64(value)
-	return s
-}
+func (s *SecureCookie) MaxAge(value int) *SecureCookie { _ = "STUB: not implemented"; return nil }
 
 // MinAge restricts the minimum age, in seconds, for the cookie value.
 //
 // Default is 0 (no restriction).
-func (s *SecureCookie) MinAge(value int) *SecureCookie {
-	s.minAge = int64(value)
-	return s
-}
+func (s *SecureCookie) MinAge(value int) *SecureCookie { _ = "STUB: not implemented"; return nil }
 
 // HashFunc sets the hash function used to create HMAC.
 //
 // Default is crypto/sha256.New.
 func (s *SecureCookie) HashFunc(f func() hash.Hash) *SecureCookie {
-	s.hashFunc = f
-	return s
+	_ = "STUB: not implemented"
+	return nil
+
+	// BlockFunc sets the encryption function used to create a cipher.Block.
+	//
+	// Default is crypto/aes.New.
 }
 
-// BlockFunc sets the encryption function used to create a cipher.Block.
-//
-// Default is crypto/aes.New.
 func (s *SecureCookie) BlockFunc(f func([]byte) (cipher.Block, error)) *SecureCookie {
-	if s.blockKey == nil {
-		s.err = errBlockKeyNotSet
-	} else if block, err := f(s.blockKey); err == nil {
-		s.block = block
-	} else {
-		s.err = cookieError{cause: err, typ: usageError}
-	}
-	return s
+	_ = "STUB: not implemented"
+	return nil
 }
 
 // Encoding sets the encoding/serialization method for cookies.
@@ -239,58 +184,41 @@ func (s *SecureCookie) BlockFunc(f func([]byte) (cipher.Block, error)) *SecureCo
 // Default is encoding/gob.  To encode special structures using encoding/gob,
 // they must be registered first using gob.Register().
 func (s *SecureCookie) SetSerializer(sz Serializer) *SecureCookie {
-	s.sz = sz
+	_ = "STUB: not implemented"
+	return nil
 
-	return s
+	// Encode encodes a cookie value.
+	//
+	// It serializes, optionally encrypts, signs with a message authentication code,
+	// and finally encodes the value.
+	//
+	// The name argument is the cookie name. It is stored with the encoded value.
+	// The value argument is the value to be encoded. It can be any value that can
+	// be encoded using the currently selected serializer; see SetSerializer().
+	//
+	// It is the client's responsibility to ensure that value, when encoded using
+	// the current serialization/encryption settings on s and then base64-encoded,
+	// is shorter than the maximum permissible length.
 }
 
-// Encode encodes a cookie value.
-//
-// It serializes, optionally encrypts, signs with a message authentication code,
-// and finally encodes the value.
-//
-// The name argument is the cookie name. It is stored with the encoded value.
-// The value argument is the value to be encoded. It can be any value that can
-// be encoded using the currently selected serializer; see SetSerializer().
-//
-// It is the client's responsibility to ensure that value, when encoded using
-// the current serialization/encryption settings on s and then base64-encoded,
-// is shorter than the maximum permissible length.
 func (s *SecureCookie) Encode(name string, value interface{}) (string, error) {
-	if s.err != nil {
-		return "", s.err
-	}
-	if s.hashKey == nil {
-		s.err = errHashKeyNotSet
-		return "", s.err
-	}
-	var err error
-	var b []byte
-	// 1. Serialize.
-	if b, err = s.sz.Serialize(value); err != nil {
-		return "", cookieError{cause: err, typ: usageError}
-	}
-	// 2. Encrypt (optional).
-	if s.block != nil {
-		if b, err = encrypt(s.block, b); err != nil {
-			return "", cookieError{cause: err, typ: usageError}
-		}
-	}
-	b = encode(b)
-	// 3. Create MAC for "name|date|value". Extra pipe to be used later.
-	b = []byte(fmt.Sprintf("%s|%d|%s|", name, s.timestamp(), b))
-	mac := createMac(hmac.New(s.hashFunc, s.hashKey), b[:len(b)-1])
-	// Append mac, remove name.
-	b = append(b, mac...)[len(name)+1:]
-	// 4. Encode to base64.
-	b = encode(b)
-	// 5. Check length.
-	if s.maxLength != 0 && len(b) > s.maxLength {
-		return "", fmt.Errorf("%s: %d", errEncodedValueTooLong, len(b))
-	}
-	// Done.
-	return string(b), nil
+	_ = "STUB: not implemented"
+	return "", nil
 }
+
+// 1. Serialize.
+
+// 2. Encrypt (optional).
+
+// 3. Create MAC for "name|date|value". Extra pipe to be used later.
+
+// Append mac, remove name.
+
+// 4. Encode to base64.
+
+// 5. Check length.
+
+// Done.
 
 // Decode decodes a cookie value.
 //
@@ -301,91 +229,40 @@ func (s *SecureCookie) Encode(name string, value interface{}) (string, error) {
 // it was stored. The value argument is the encoded cookie value. The dst
 // argument is where the cookie will be decoded. It must be a pointer.
 func (s *SecureCookie) Decode(name, value string, dst interface{}) error {
-	if s.err != nil {
-		return s.err
-	}
-	if s.hashKey == nil {
-		s.err = errHashKeyNotSet
-		return s.err
-	}
-	// 1. Check length.
-	if s.maxLength != 0 && len(value) > s.maxLength {
-		return fmt.Errorf("%s: %d", errValueToDecodeTooLong, len(value))
-	}
-	// 2. Decode from base64.
-	b, err := decode([]byte(value))
-	if err != nil {
-		return err
-	}
-	// 3. Verify MAC. Value is "date|value|mac".
-	parts := bytes.SplitN(b, []byte("|"), 3)
-	if len(parts) != 3 {
-		return ErrMacInvalid
-	}
-	h := hmac.New(s.hashFunc, s.hashKey)
-	b = append([]byte(name+"|"), b[:len(b)-len(parts[2])-1]...)
-	if err = verifyMac(h, b, parts[2]); err != nil {
-		return err
-	}
-	// 4. Verify date ranges.
-	var t1 int64
-	if t1, err = strconv.ParseInt(string(parts[0]), 10, 64); err != nil {
-		return errTimestampInvalid
-	}
-	t2 := s.timestamp()
-	if s.minAge != 0 && t1 > t2-s.minAge {
-		return errTimestampTooNew
-	}
-	if s.maxAge != 0 && t1 < t2-s.maxAge {
-		return errTimestampExpired
-	}
-	// 5. Decrypt (optional).
-	b, err = decode(parts[1])
-	if err != nil {
-		return err
-	}
-	if s.block != nil {
-		if b, err = decrypt(s.block, b); err != nil {
-			return err
-		}
-	}
-	// 6. Deserialize.
-	if err = s.sz.Deserialize(b, dst); err != nil {
-		return cookieError{cause: err, typ: decodeError}
-	}
-	// Done.
+	_ = "STUB: not implemented"
 	return nil
 }
+
+// 1. Check length.
+
+// 2. Decode from base64.
+
+// 3. Verify MAC. Value is "date|value|mac".
+
+// 4. Verify date ranges.
+
+// 5. Decrypt (optional).
+
+// 6. Deserialize.
+
+// Done.
 
 // timestamp returns the current timestamp, in seconds.
 //
 // For testing purposes, the function that generates the timestamp can be
 // overridden. If not set, it will return time.Now().UTC().Unix().
-func (s *SecureCookie) timestamp() int64 {
-	if s.timeFunc == nil {
-		return time.Now().UTC().Unix()
-	}
-	return s.timeFunc()
-}
+func (s *SecureCookie) timestamp() int64 { _ = "STUB: not implemented"; return 0 }
 
 // Authentication -------------------------------------------------------------
 
 // createMac creates a message authentication code (MAC).
-func createMac(h hash.Hash, value []byte) []byte {
-	h.Write(value)
-	return h.Sum(nil)
-}
+func createMac(h hash.Hash, value []byte) []byte { _ = "STUB: not implemented"; return nil }
 
 // verifyMac verifies that a message authentication code (MAC) is valid.
-func verifyMac(h hash.Hash, value []byte, mac []byte) error {
-	mac2 := createMac(h, value)
-	// Check that both MACs are of equal length, as subtle.ConstantTimeCompare
-	// does not do this prior to Go 1.4.
-	if len(mac) == len(mac2) && subtle.ConstantTimeCompare(mac, mac2) == 1 {
-		return nil
-	}
-	return ErrMacInvalid
-}
+func verifyMac(h hash.Hash, value []byte, mac []byte) error { _ = "STUB: not implemented"; return nil }
+
+// Check that both MACs are of equal length, as subtle.ConstantTimeCompare
+// does not do this prior to Go 1.4.
 
 // Encryption -----------------------------------------------------------------
 
@@ -394,112 +271,74 @@ func verifyMac(h hash.Hash, value []byte, mac []byte) error {
 // A random initialization vector ( https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Initialization_vector_(IV) ) with the length of the
 // block size is prepended to the resulting ciphertext.
 func encrypt(block cipher.Block, value []byte) ([]byte, error) {
-	iv := GenerateRandomKey(block.BlockSize())
-	if iv == nil {
-		return nil, errGeneratingIV
-	}
-	// Encrypt it.
-	stream := cipher.NewCTR(block, iv)
-	stream.XORKeyStream(value, value)
-	// Return iv + ciphertext.
-	return append(iv, value...), nil
+	_ = "STUB: not implemented"
+	return nil, nil
 }
+
+// Encrypt it.
+
+// Return iv + ciphertext.
 
 // decrypt decrypts a value using the given block in counter mode.
 //
 // The value to be decrypted must be prepended by a initialization vector
 // ( https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Initialization_vector_(IV) ) with the length of the block size.
 func decrypt(block cipher.Block, value []byte) ([]byte, error) {
-	size := block.BlockSize()
-	if len(value) > size {
-		// Extract iv.
-		iv := value[:size]
-		// Extract ciphertext.
-		value = value[size:]
-		// Decrypt it.
-		stream := cipher.NewCTR(block, iv)
-		stream.XORKeyStream(value, value)
-		return value, nil
-	}
-	return nil, errDecryptionFailed
+	_ = "STUB: not implemented"
+	return nil, nil
 }
+
+// Extract iv.
+
+// Extract ciphertext.
+
+// Decrypt it.
 
 // Serialization --------------------------------------------------------------
 
 // Serialize encodes a value using gob.
 func (e GobEncoder) Serialize(src interface{}) ([]byte, error) {
-	buf := new(bytes.Buffer)
-	enc := gob.NewEncoder(buf)
-	if err := enc.Encode(src); err != nil {
-		return nil, cookieError{cause: err, typ: usageError}
-	}
-	return buf.Bytes(), nil
+	_ = "STUB: not implemented"
+	return nil, nil
 }
 
 // Deserialize decodes a value using gob.
 func (e GobEncoder) Deserialize(src []byte, dst interface{}) error {
-	dec := gob.NewDecoder(bytes.NewBuffer(src))
-	if err := dec.Decode(dst); err != nil {
-		return cookieError{cause: err, typ: decodeError}
-	}
+	_ = "STUB: not implemented"
 	return nil
 }
 
 // Serialize encodes a value using encoding/json.
 func (e JSONEncoder) Serialize(src interface{}) ([]byte, error) {
-	buf := new(bytes.Buffer)
-	enc := json.NewEncoder(buf)
-	if err := enc.Encode(src); err != nil {
-		return nil, cookieError{cause: err, typ: usageError}
-	}
-	return buf.Bytes(), nil
+	_ = "STUB: not implemented"
+	return nil, nil
 }
 
 // Deserialize decodes a value using encoding/json.
 func (e JSONEncoder) Deserialize(src []byte, dst interface{}) error {
-	dec := json.NewDecoder(bytes.NewReader(src))
-	if err := dec.Decode(dst); err != nil {
-		return cookieError{cause: err, typ: decodeError}
-	}
+	_ = "STUB: not implemented"
 	return nil
 }
 
 // Serialize passes a []byte through as-is.
 func (e NopEncoder) Serialize(src interface{}) ([]byte, error) {
-	if b, ok := src.([]byte); ok {
-		return b, nil
-	}
-
-	return nil, errValueNotByte
+	_ = "STUB: not implemented"
+	return nil, nil
 }
 
 // Deserialize passes a []byte through as-is.
 func (e NopEncoder) Deserialize(src []byte, dst interface{}) error {
-	if dat, ok := dst.(*[]byte); ok {
-		*dat = src
-		return nil
-	}
-	return errValueNotBytePtr
+	_ = "STUB: not implemented"
+	return nil
 }
 
 // Encoding -------------------------------------------------------------------
 
 // encode encodes a value using base64.
-func encode(value []byte) []byte {
-	encoded := make([]byte, base64.URLEncoding.EncodedLen(len(value)))
-	base64.URLEncoding.Encode(encoded, value)
-	return encoded
-}
+func encode(value []byte) []byte { _ = "STUB: not implemented"; return nil }
 
 // decode decodes a cookie using base64.
-func decode(value []byte) ([]byte, error) {
-	decoded := make([]byte, base64.URLEncoding.DecodedLen(len(value)))
-	b, err := base64.URLEncoding.Decode(decoded, value)
-	if err != nil {
-		return nil, cookieError{cause: err, typ: decodeError, msg: "base64 decode failed"}
-	}
-	return decoded[:b], nil
-}
+func decode(value []byte) ([]byte, error) { _ = "STUB: not implemented"; return nil, nil }
 
 // Helpers --------------------------------------------------------------------
 
@@ -512,13 +351,7 @@ func decode(value []byte) ([]byte, error) {
 //
 // Callers should explicitly check for the possibility of a nil return, treat
 // it as a failure of the system random number generator, and not continue.
-func GenerateRandomKey(length int) []byte {
-	k := make([]byte, length)
-	if _, err := io.ReadFull(rand.Reader, k); err != nil {
-		return nil
-	}
-	return k
-}
+func GenerateRandomKey(length int) []byte { _ = "STUB: not implemented"; return nil }
 
 // CodecsFromPairs returns a slice of SecureCookie instances.
 //
@@ -544,17 +377,7 @@ func GenerateRandomKey(length int) []byte {
 //	           cookie.HashFunc(sha512.New512_256)
 //	       }
 //	   }
-func CodecsFromPairs(keyPairs ...[]byte) []Codec {
-	codecs := make([]Codec, len(keyPairs)/2+len(keyPairs)%2)
-	for i := 0; i < len(keyPairs); i += 2 {
-		var blockKey []byte
-		if i+1 < len(keyPairs) {
-			blockKey = keyPairs[i+1]
-		}
-		codecs[i/2] = New(keyPairs[i], blockKey)
-	}
-	return codecs
-}
+func CodecsFromPairs(keyPairs ...[]byte) []Codec { _ = "STUB: not implemented"; return nil }
 
 // EncodeMulti encodes a cookie value using a group of codecs.
 //
@@ -563,19 +386,8 @@ func CodecsFromPairs(keyPairs ...[]byte) []Codec {
 //
 // On error, may return a MultiError.
 func EncodeMulti(name string, value interface{}, codecs ...Codec) (string, error) {
-	if len(codecs) == 0 {
-		return "", errNoCodecs
-	}
-
-	var errors MultiError
-	for _, codec := range codecs {
-		encoded, err := codec.Encode(name, value)
-		if err == nil {
-			return encoded, nil
-		}
-		errors = append(errors, err)
-	}
-	return "", errors
+	_ = "STUB: not implemented"
+	return "", nil
 }
 
 // DecodeMulti decodes a cookie value using a group of codecs.
@@ -585,27 +397,16 @@ func EncodeMulti(name string, value interface{}, codecs ...Codec) (string, error
 //
 // On error, may return a MultiError.
 func DecodeMulti(name string, value string, dst interface{}, codecs ...Codec) error {
-	if len(codecs) == 0 {
-		return errNoCodecs
-	}
-
-	var errors MultiError
-	for _, codec := range codecs {
-		err := codec.Decode(name, value, dst)
-		if err == nil {
-			return nil
-		}
-		errors = append(errors, err)
-	}
-	return errors
+	_ = "STUB: not implemented"
+	return nil
 }
 
 // MultiError groups multiple errors.
 type MultiError []error
 
-func (m MultiError) IsUsage() bool    { return m.any(func(e Error) bool { return e.IsUsage() }) }
-func (m MultiError) IsDecode() bool   { return m.any(func(e Error) bool { return e.IsDecode() }) }
-func (m MultiError) IsInternal() bool { return m.any(func(e Error) bool { return e.IsInternal() }) }
+func (m MultiError) IsUsage() bool    { _ = "STUB: not implemented"; return false }
+func (m MultiError) IsDecode() bool   { _ = "STUB: not implemented"; return false }
+func (m MultiError) IsInternal() bool { _ = "STUB: not implemented"; return false }
 
 // Cause returns nil for MultiError; there is no unique underlying cause in the
 // general case.
@@ -615,35 +416,9 @@ func (m MultiError) IsInternal() bool { return m.any(func(e Error) bool { return
 // to rely on the arity of causes inside a MultiError, so we have opted not to
 // provide this functionality.  Clients which really wish to access the Causes
 // of the underlying errors are free to iterate through the errors themselves.
-func (m MultiError) Cause() error { return nil }
+func (m MultiError) Cause() error { _ = "STUB: not implemented"; return nil }
 
-func (m MultiError) Error() string {
-	s, n := "", 0
-	for _, e := range m {
-		if e != nil {
-			if n == 0 {
-				s = e.Error()
-			}
-			n++
-		}
-	}
-	switch n {
-	case 0:
-		return "(0 errors)"
-	case 1:
-		return s
-	case 2:
-		return s + " (and 1 other error)"
-	}
-	return fmt.Sprintf("%s (and %d other errors)", s, n-1)
-}
+func (m MultiError) Error() string { _ = "STUB: not implemented"; return "" }
 
 // any returns true if any element of m is an Error for which pred returns true.
-func (m MultiError) any(pred func(Error) bool) bool {
-	for _, e := range m {
-		if ourErr, ok := e.(Error); ok && pred(ourErr) {
-			return true
-		}
-	}
-	return false
-}
+func (m MultiError) any(pred func(Error) bool) bool { _ = "STUB: not implemented"; return false }
